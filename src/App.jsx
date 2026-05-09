@@ -1,532 +1,323 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 
-// ─── DATA SOURCE ──────────────────────────────────────────────
-// Combined from 2 sheets: Sheet1 (Overdue Fees) + Sheet2 (Payment Fee Waive Matrix)
 const WAIVE_DATA = {
   "Overdue Fees": {
-    icon: "⏰", tag: "OVRD_FEE",
-    canWaive: true,
+    icon: "⏰", canWaive: true,
+    gradient: "linear-gradient(135deg,#6366f1,#8b5cf6)",
     tiers: [
       {
-        label: "Hard Reasons", tag: "TIER::HARD",
-        badgeColor: "#ff2d55",
+        label: "Hard Reasons", labelId: "Alasan Berat",
+        accent: "#f43f5e", accentLight: "rgba(244,63,94,0.15)",
         dpdMin: 2, dpdMax: null, dpdLabel: "DPD ≥ 2",
         reasons: [
-          { id: 1, icon: "☠", text: "Death", id_text: "Meninggal" },
+          { id: 1, icon: "🕊️", text: "Death", id_text: "Meninggal" },
           { id: 2, icon: "🏥", text: "Hard Sick (Stroke/Coma/Cancer/Covid) / Hard Accident / Long-term Sick", id_text: "Sakit Keras / Kecelakaan Berat / Sakit Jangka Panjang" },
-          { id: 3, icon: "⚠", text: "Pending Payment – System Error", id_text: "Pending Payment karena System Error" },
+          { id: 3, icon: "⚡", text: "Pending Payment – System Error", id_text: "Pending Payment karena System Error" },
           { id: 4, icon: "📋", text: "Terminated / Job Loss / Bankruptcy", id_text: "PHK / Kehilangan Pekerjaan / Bangkrut" },
-          { id: 5, icon: "🌊", text: "Natural Disaster (Flood / Earthquake / Fire)", id_text: "Bencana Alam (Banjir / Gempa / Kebakaran)" },
+          { id: 5, icon: "🌊", text: "Natural Disaster (Flood/Earthquake/Fire)", id_text: "Bencana Alam (Banjir/Gempa/Kebakaran)" },
           { id: 6, icon: "👨‍👩‍👧", text: "Close Family Sick (Mother/Spouse/Child/Parent)", id_text: "Keluarga Dekat Sakit (Ibu/Suami/Anak/Ortu)" },
           { id: 7, icon: "🎯", text: "Crash Program – Internal Collection", id_text: "Program Khusus Internal Collection (jika ada)" },
         ],
         waivePct: "100%", waiveAmt: "Rp 80.000",
-        docs: [
-          "Death Certificate / Surat Kematian",
-          "Official Certificate from Hospital / Specialist Doctor",
-          "Photo from Cboss & proof of payment",
-          "Termination letter from company / Surat PHK",
-          "Official announcement from government or mass media",
-          "Certificate of illness/hospitalization from hospital or doctor",
-          "Official emails from Local or Regional",
-        ],
+        docs: ["Death Certificate / Surat Kematian","Official Certificate from Hospital / Specialist Doctor","Photo from Cboss & proof of payment","Termination letter from company / Surat PHK","Official announcement from government or mass media","Certificate of illness/hospitalization from hospital or doctor","Official emails from Local or Regional"],
       },
       {
-        label: "Soft Reasons", tag: "TIER::SOFT",
-        badgeColor: "#f7b731",
+        label: "Soft Reasons", labelId: "Alasan Ringan",
+        accent: "#f59e0b", accentLight: "rgba(245,158,11,0.15)",
         dpdMin: 3, dpdMax: null, dpdLabel: "DPD > 2",
         reasons: [
-          { id: 1, icon: "🤧", text: "Temporary Sick (Flu / Fever)", id_text: "Sakit Ringan (Demam / Flu / Batuk)" },
+          { id: 1, icon: "🤧", text: "Temporary Sick (Flu/Fever)", id_text: "Sakit Ringan (Demam/Flu/Batuk)" },
           { id: 2, icon: "📉", text: "Downgrade in Job", id_text: "Jabatan di Downgrade" },
-          { id: 3, icon: "💸", text: "Decreased Revenue / Omzet (Self-employed)", id_text: "Omzet Menurun (Wiraswasta)" },
+          { id: 3, icon: "💸", text: "Decreased Revenue/Omzet (Self-employed)", id_text: "Omzet Menurun (Wiraswasta)" },
           { id: 4, icon: "🏦", text: "Run Out Money – Paid to Other Agencies", id_text: "Penghasilan Minim / Tagihan di Perusahaan Lain" },
           { id: 5, icon: "🎯", text: "Crash Program – Internal Collection", id_text: "Program Khusus Internal Collection (jika ada)" },
         ],
-        waivePctPerReason: { 1: "Max 50%", 2: "Max 80%", 3: "Max 80%", 4: "Max 50%", 5: "Max 100%" },
+        waivePctPerReason: {1:"Max 50%",2:"Max 80%",3:"Max 80%",4:"Max 50%",5:"Max 100%"},
         waivePct: "50%–100%", waiveAmt: "Rp 64.000 (max)",
-        docs: [
-          "Official Certificate from Hospital / Specialist Doctor",
-          "Downgrade letter from company / Surat Downgrade",
-          "Certificate of incapacity from RT",
-          "Invoices or Loan Letters from related financial services",
-          "Official emails from Local or Regional",
-        ],
+        docs: ["Official Certificate from Hospital / Specialist Doctor","Downgrade letter from company / Surat Downgrade","Certificate of incapacity from RT","Invoices or Loan Letters from related financial services","Official emails from Local or Regional"],
       },
     ],
   },
   "Payment Fee": {
-    icon: "💳", tag: "PAY_FEE",
-    canWaive: true,
+    icon: "💳", canWaive: true,
+    gradient: "linear-gradient(135deg,#06b6d4,#3b82f6)",
     tiers: [
       {
-        label: "Hard Reasons", tag: "TIER::HARD",
-        badgeColor: "#ff2d55",
+        label: "Hard Reasons", labelId: "Alasan Berat",
+        accent: "#f43f5e", accentLight: "rgba(244,63,94,0.15)",
         dpdMin: 0, dpdMax: null, dpdLabel: "All DPD",
         reasons: [
-          { id: 1, icon: "☠", text: "Death", id_text: "Meninggal" },
+          { id: 1, icon: "🕊️", text: "Death", id_text: "Meninggal" },
           { id: 2, icon: "🏥", text: "Hard Sick (Stroke/Coma/Cancer/Covid) / Hard Accident / Long-term Sick", id_text: "Sakit Keras / Kecelakaan Berat / Sakit Jangka Panjang" },
-          { id: 3, icon: "⚠", text: "System Error", id_text: "Sistem Error" },
+          { id: 3, icon: "⚡", text: "System Error", id_text: "Sistem Error" },
           { id: 4, icon: "📋", text: "Terminated from Work / Job Loss", id_text: "PHK / Kehilangan Pekerjaan" },
-          { id: 5, icon: "🌊", text: "Natural Disaster (Flood / Earthquake / Fire)", id_text: "Bencana Alam (Banjir / Gempa / Kebakaran)" },
+          { id: 5, icon: "🌊", text: "Natural Disaster (Flood/Earthquake/Fire)", id_text: "Bencana Alam (Banjir/Gempa/Kebakaran)" },
           { id: 6, icon: "📢", text: "Hard Complaint to Social Media & OJK", id_text: "Komplain Berat ke Social Media atau OJK" },
           { id: 7, icon: "🎯", text: "Crash Program (Conditional)", id_text: "Program Khusus (Kondisional)" },
         ],
         waivePct: "Max 100%", waiveAmt: "—",
-        notes: "Waive hanya berlaku selama periode alasan · Wajib Approval SPV & Manager",
-        docs: [
-          "Death Certificate / Surat Kematian",
-          "Official Certificate from Hospital / Specialist Doctor",
-          "Photo from Cboss & proof of payment",
-          "Termination letter from company / Surat PHK",
-          "Official announcement from government or mass media",
-          "Evidence of news in mass media or email from OJK",
-          "Official emails from Local or Regional",
-        ],
+        notes: "Waive hanya berlaku selama periode alasan. Wajib Approval SPV & Manager.",
+        docs: ["Death Certificate / Surat Kematian","Official Certificate from Hospital / Specialist Doctor","Photo from Cboss & proof of payment","Termination letter from company / Surat PHK","Official announcement from government or mass media","Evidence of news in mass media or email from OJK","Official emails from Local or Regional"],
       },
     ],
   },
-  "Membership Fee": { icon: "🪪", tag: "MEMB_FEE", canWaive: false },
-  "Service Fee":    { icon: "🔧", tag: "SRVC_FEE", canWaive: false },
-  "Interest":       { icon: "📊", tag: "INTRST",   canWaive: false },
-  "Principal":      { icon: "🏛", tag: "PRNCPL",   canWaive: false },
+  "Membership Fee": { icon: "🪪", canWaive: false, gradient: "linear-gradient(135deg,#64748b,#475569)" },
+  "Service Fee":    { icon: "🔧", canWaive: false, gradient: "linear-gradient(135deg,#64748b,#475569)" },
+  "Interest":       { icon: "📊", canWaive: false, gradient: "linear-gradient(135deg,#64748b,#475569)" },
+  "Principal":      { icon: "🏛️", canWaive: false, gradient: "linear-gradient(135deg,#64748b,#475569)" },
 };
 
-// ─── TYPEWRITER HOOK ──
-function useTypewriter(text, speed = 28, trigger = true) {
-  const [displayed, setDisplayed] = useState("");
-  useEffect(() => {
-    if (!trigger) return;
-    setDisplayed("");
-    let i = 0;
-    const t = setInterval(() => {
-      i++;
-      setDisplayed(text.slice(0, i));
-      if (i >= text.length) clearInterval(t);
-    }, speed);
-    return () => clearInterval(t);
-  }, [text, trigger]);
-  return displayed;
-}
+const STEP_LABELS = ["Tipe Fee","DPD","Alasan","Hasil"];
+const STEP_COLORS = ["#6366f1","#06b6d4","#8b5cf6","#10b981"];
 
-// ─── SCANLINE OVERLAY ──
-function Scanlines() {
-  return (
-    <div style={{
-      position: "fixed", inset: 0, pointerEvents: "none", zIndex: 9998,
-      backgroundImage: "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.08) 2px, rgba(0,0,0,0.08) 4px)",
-      animation: "scanMove 8s linear infinite",
-    }} />
-  );
-}
-
-// ─── MATRIX RAIN (subtle bg) ──
-function MatrixBg() {
-  const canvasRef = useRef(null);
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    const cols = Math.floor(canvas.width / 18);
-    const drops = Array(cols).fill(1);
-    const chars = "01アイウエオカキクケコWAIVEDPD%MATRIX";
-    let raf;
-    const draw = () => {
-      ctx.fillStyle = "rgba(0,8,0,0.06)";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = "#00ff4115";
-      ctx.font = "13px monospace";
-      drops.forEach((y, i) => {
-        const ch = chars[Math.floor(Math.random() * chars.length)];
-        ctx.fillText(ch, i * 18, y * 18);
-        if (y * 18 > canvas.height && Math.random() > 0.975) drops[i] = 0;
-        drops[i]++;
-      });
-      raf = requestAnimationFrame(draw);
-    };
-    draw();
-    return () => cancelAnimationFrame(raf);
-  }, []);
-  return <canvas ref={canvasRef} style={{ position: "fixed", inset: 0, opacity: 0.4, zIndex: 0, pointerEvents: "none" }} />;
-}
-
-// ─── GLITCH TEXT ──
-function GlitchText({ text, size = 32, color = "#00ff41" }) {
-  return (
-    <div style={{ position: "relative", display: "inline-block", lineHeight: 1 }}>
-      <span style={{
-        fontFamily: "'Share Tech Mono', monospace",
-        fontSize: size, color, letterSpacing: 2,
-        textShadow: `0 0 10px ${color}, 0 0 30px ${color}55`,
-        animation: "glitchMain 4s infinite",
-        position: "relative", zIndex: 1,
-      }}>{text}</span>
-      <span style={{
-        fontFamily: "'Share Tech Mono', monospace",
-        fontSize: size, color: "#ff003c",
-        position: "absolute", top: 0, left: 0, letterSpacing: 2,
-        animation: "glitchR 4s infinite",
-        opacity: 0.7, zIndex: 0,
-        clipPath: "polygon(0 30%, 100% 30%, 100% 50%, 0 50%)",
-      }}>{text}</span>
-      <span style={{
-        fontFamily: "'Share Tech Mono', monospace",
-        fontSize: size, color: "#00cfff",
-        position: "absolute", top: 0, left: 0, letterSpacing: 2,
-        animation: "glitchB 4s infinite",
-        opacity: 0.7, zIndex: 0,
-        clipPath: "polygon(0 60%, 100% 60%, 100% 75%, 0 75%)",
-      }}>{text}</span>
-    </div>
-  );
-}
-
-// ─── PROGRESS BAR ──
-function ProgressBar({ current, total }) {
-  const pct = Math.round((current / total) * 100);
-  return (
-    <div style={{ marginBottom: 20 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-        <span style={{ fontFamily: "monospace", fontSize: 10, color: "#00ff41", letterSpacing: 2 }}>
-          PROGRESS
-        </span>
-        <span style={{ fontFamily: "monospace", fontSize: 10, color: "#00ff41" }}>{pct}%</span>
-      </div>
-      <div style={{ height: 4, background: "#0a1a0a", border: "1px solid #00ff4133", borderRadius: 2 }}>
-        <div style={{
-          height: "100%", width: `${pct}%`,
-          background: "linear-gradient(90deg, #00ff41, #00cfff)",
-          borderRadius: 2,
-          boxShadow: "0 0 8px #00ff41",
-          transition: "width 0.5s ease",
-        }} />
-      </div>
-    </div>
-  );
-}
-
-// ─── TERMINAL LINE ──
-function TermLine({ prefix = ">", text, color = "#00ff41", delay = 0, dim = false }) {
-  return (
-    <div style={{
-      fontFamily: "'Share Tech Mono', monospace",
-      fontSize: 11, color: dim ? "#3a5a3a" : color,
-      marginBottom: 2, letterSpacing: 0.5,
-      animation: `fadeIn 0.3s ${delay}s both`,
-    }}>
-      <span style={{ color: dim ? "#2a4a2a" : "#00ff4188" }}>{prefix} </span>{text}
-    </div>
-  );
-}
-
-// ─── MAIN APP ──
 export default function App() {
-  const [step, setStep]             = useState("waive_type");
+  const [step, setStep]             = useState(0);
   const [waiveType, setWaiveType]   = useState(null);
   const [dpd, setDpd]               = useState(null);
   const [reasonTier, setReasonTier] = useState(null);
   const [reasonId, setReasonId]     = useState(null);
-  const [history, setHistory]       = useState([]);
   const [dpdInput, setDpdInput]     = useState("");
-  const [animKey, setAnimKey]       = useState(0);
-  const [bootDone, setBootDone]     = useState(false);
-  const [hoveredKey, setHoveredKey] = useState(null);
-  const [lang, setLang]             = useState("EN");
+  const [lang, setLang]             = useState("ID");
   const [copied, setCopied]         = useState(false);
+  const [animKey, setAnimKey]       = useState(0);
 
-  const t = (en, id) => lang === "ID" ? id : en;
+  const data          = waiveType ? WAIVE_DATA[waiveType] : null;
+  const filteredTiers = data?.tiers?.filter(tier => {
+    if (!dpd) return true;
+    const n = parseInt(dpd);
+    return n >= (tier.dpdMin ?? 0) && n <= (tier.dpdMax ?? Infinity);
+  });
+  const resultTier   = data?.tiers?.[reasonTier];
+  const resultReason = resultTier?.reasons?.find(r => r.id === reasonId);
+  const waivePct     = (resultTier?.waivePctPerReason && resultReason)
+    ? (resultTier.waivePctPerReason[resultReason.id] || resultTier.waivePct)
+    : (resultTier?.waivePct || "—");
 
-  const buildCopyText = () => {
-    if (!resultTier || !data) return "";
-    const waivePct = (resultTier.waivePctPerReason && resultReason)
-      ? (resultTier.waivePctPerReason[resultReason.id] || resultTier.waivePct)
-      : (resultTier.waivePct || "-");
+  const T = (en, id) => lang === "ID" ? id : en;
+
+  const go = (s) => { setAnimKey(k => k+1); setStep(s); };
+
+  const reset = () => {
+    setWaiveType(null); setDpd(null); setReasonTier(null);
+    setReasonId(null); setDpdInput(""); go(0);
+  };
+
+  const selectType   = (type) => { setWaiveType(type); go(WAIVE_DATA[type].canWaive ? 1 : 3); };
+  const selectDpd    = (val)  => { setDpd(val); go(2); };
+  const selectReason = (tIdx, rId) => { setReasonTier(tIdx); setReasonId(rId); go(3); };
+
+  const handleCopy = () => {
+    if (!resultTier) return;
     const lines = [
       "=== WAIVE DECISION RESULT ===",
       "Fee Type   : " + waiveType,
       "DPD        : " + dpd + " hari (" + resultTier.dpdLabel + ")",
       "Waive %    : " + waivePct,
-      "Max Amount : " + (resultTier.waiveAmt || "-"),
-      resultReason ? ("Reason     : [" + resultReason.id + "] " + (lang === "ID" ? resultReason.id_text : resultReason.text)) : "",
-      resultTier.notes ? ("NOTICE     : " + resultTier.notes) : "",
-      "",
-      "--- Required Documents ---",
-      ...(resultTier.docs || []).map((d, i) => (i + 1) + ". " + d),
-      "",
-      "© OLLA_BOT · WAIVE_MATRIX_ENGINE",
-    ].filter(l => l !== null);
-    return lines.join("\n");
-  };
-
-  const handleCopy = () => {
-    const text = buildCopyText();
-    if (!text) return;
-    navigator.clipboard.writeText(text).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      "Max Amount : " + (resultTier.waiveAmt || "—"),
+      resultReason ? ("Reason : [" + resultReason.id + "] " + (lang==="ID" ? resultReason.id_text : resultReason.text)) : "",
+      resultTier.notes ? ("NOTICE : " + resultTier.notes) : "",
+      "", "--- Dokumen ---",
+      ...(resultTier.docs||[]).map((d,i) => (i+1)+". "+d),
+      "", "© Olla Bot — Waive Matrix",
+    ].filter(Boolean);
+    navigator.clipboard.writeText(lines.join("\n")).then(() => {
+      setCopied(true); setTimeout(() => setCopied(false), 2000);
     });
   };
 
-  useEffect(() => { setTimeout(() => setBootDone(true), 1200); }, []);
-
-  const data         = waiveType ? WAIVE_DATA[waiveType] : null;
-  const filteredTiers = data?.tiers?.filter(tier => {
-    if (!dpd) return true;
-    const n   = parseInt(dpd);
-    const min = tier.dpdMin ?? 0;
-    const max = tier.dpdMax ?? Infinity;
-    return n >= min && n <= max;
-  });
-  const resultTier   = data?.tiers?.[reasonTier];
-  const resultReason = resultTier?.reasons?.find(r => r.id === reasonId);
-
-  const bump = () => setAnimKey(k => k + 1);
-  const go   = (s) => { bump(); setStep(s); };
-
-  const selectWaiveType = (type) => {
-    setWaiveType(type);
-    setHistory([...history, "waive_type"]);
-    if (!WAIVE_DATA[type].canWaive) go("result"); else go("dpd");
-  };
-  const selectDpd = (val) => {
-    setDpd(val); setHistory([...history, "dpd"]); go("reason");
-  };
-  const selectReason = (tierIdx, rId) => {
-    setReasonTier(tierIdx); setReasonId(rId);
-    setHistory([...history, "reason"]); go("result");
-  };
-  const goBack = () => {
-    const prev = [...history]; const last = prev.pop();
-    setHistory(prev); bump();
-    if (last === "waive_type")   { setWaiveType(null); setStep("waive_type"); }
-    else if (last === "dpd")     { setDpd(null); setStep("dpd"); }
-    else if (last === "reason")  { setReasonTier(null); setReasonId(null); setStep("reason"); }
-  };
-  const reset = () => {
-    bump(); setStep("waive_type"); setWaiveType(null); setDpd(null);
-    setReasonTier(null); setReasonId(null); setHistory([]); setDpdInput("");
-  };
-
-  const steps    = ["waive_type", "dpd", "reason", "result"];
-  const stepIdx  = steps.indexOf(step);
-
-  const NEON  = "#00ff41";
-  const CYAN  = "#00cfff";
-  const RED   = "#ff2d55";
-  const GOLD  = "#f7b731";
-  const DIM   = "#1a2e1a";
-  const BG    = "#030b03";
-  const PANEL = "#060f06";
-  const BORDER = "#00ff4122";
-
-  // ── Boot screen ──
-  if (!bootDone) {
-    return (
-      <div style={{ minHeight: "100vh", background: BG, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", fontFamily: "monospace" }}>
-        <style>{`@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');`}</style>
-        <MatrixBg />
-        <div style={{ position: "relative", zIndex: 1, textAlign: "center" }}>
-          <div style={{ color: NEON, fontSize: 12, letterSpacing: 4, marginBottom: 16, animation: "blink 0.8s infinite" }}>
-            INITIALIZING WAIVE_MATRIX_v2.0...
-          </div>
-          <div style={{ color: "#3a5a3a", fontSize: 11 }}>Loading decision engine...</div>
-        </div>
-        <style>{`@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}`}</style>
-      </div>
-    );
-  }
+  const accentColor = STEP_COLORS[step];
 
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@700;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
         *{box-sizing:border-box;margin:0;padding:0}
-        body{background:${BG};color:${NEON};font-family:'Share Tech Mono',monospace}
-        ::selection{background:#00ff4133;color:#00ff41}
-        ::-webkit-scrollbar{width:4px}
-        ::-webkit-scrollbar-track{background:#000}
-        ::-webkit-scrollbar-thumb{background:#00ff4155;border-radius:2px}
+        body{font-family:'Plus Jakarta Sans',sans-serif;background:#0d0d1a;color:#f1f5f9;min-height:100vh}
+        @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+        @keyframes slideIn{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:none}}
+        @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+        @keyframes shimmer{0%{background-position:-200% center}100%{background-position:200% center}}
+        @keyframes glow{0%,100%{opacity:0.5}50%{opacity:1}}
+        .fade-up{animation:fadeUp 0.3s cubic-bezier(.34,1.2,.64,1) both}
+        .slide-in{animation:slideIn 0.22s ease both}
 
-        @keyframes scanMove{from{background-position:0 0}to{background-position:0 100px}}
-        @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
-        @keyframes popIn{0%{opacity:0;transform:scale(0.92) translateY(12px)}70%{transform:scale(1.02)}100%{opacity:1;transform:none}}
-        @keyframes glitchMain{0%,90%,100%{transform:none}92%{transform:skewX(-2deg) translateX(2px)}94%{transform:skewX(1deg) translateX(-1px)}96%{transform:none}}
-        @keyframes glitchR{0%,90%,100%{transform:none;opacity:0}92%{transform:translateX(3px);opacity:0.8}94%{transform:translateX(-2px);opacity:0.5}96%{opacity:0}}
-        @keyframes glitchB{0%,91%,100%{transform:none;opacity:0}93%{transform:translateX(-3px);opacity:0.8}95%{transform:translateX(1px);opacity:0.4}96%{opacity:0}}
-        @keyframes neonPulse{0%,100%{box-shadow:0 0 4px ${NEON}55,inset 0 0 4px ${NEON}11}50%{box-shadow:0 0 12px ${NEON}88,inset 0 0 8px ${NEON}22}}
-        @keyframes scanLine{0%{top:-10%}100%{top:110%}}
-        @keyframes cursor{0%,100%{opacity:1}50%{opacity:0}}
-
-        .card{animation:popIn 0.35s cubic-bezier(.34,1.2,.64,1) both}
-        .fade-item{animation:fadeIn 0.25s ease both}
-
-        .btn-waive{
-          background:${PANEL};border:1px solid ${BORDER};color:#3a6a3a;
-          cursor:pointer;transition:all 0.15s;text-align:left;
-          font-family:'Share Tech Mono',monospace;
+        .btn-type{
+          background:rgba(255,255,255,0.04);
+          border:1px solid rgba(255,255,255,0.08);
+          border-radius:14px;padding:16px 18px;
+          text-align:left;width:100%;cursor:pointer;
+          transition:all 0.18s;color:#f1f5f9;
+          font-family:'Plus Jakarta Sans',sans-serif;
         }
-        .btn-waive.active:hover{
-          background:#001a00;border-color:${NEON};color:${NEON};
-          box-shadow:0 0 12px ${NEON}44,inset 0 0 8px ${NEON}0a;
-          transform:translateX(4px);
-        }
-        .btn-waive.inactive:hover{
-          border-color:${RED}55;color:${RED}88;
+        .btn-type:hover{
+          background:rgba(255,255,255,0.09);
+          border-color:rgba(255,255,255,0.2);
+          transform:translateY(-2px);
+          box-shadow:0 8px 24px rgba(0,0,0,0.3);
         }
         .btn-reason{
-          background:${PANEL};border:1px solid ${BORDER};
-          cursor:pointer;transition:all 0.15s;text-align:left;
-          font-family:'Share Tech Mono',monospace;
+          background:rgba(255,255,255,0.04);
+          border:1px solid rgba(255,255,255,0.08);
+          border-radius:12px;padding:14px 16px;
+          text-align:left;width:100%;cursor:pointer;
+          transition:all 0.18s;color:#f1f5f9;
+          font-family:'Plus Jakarta Sans',sans-serif;
         }
         .btn-reason:hover{
-          background:#001a00;border-color:${NEON};
-          box-shadow:0 0 10px ${NEON}33;transform:translateX(6px);
+          background:rgba(255,255,255,0.08);
+          border-color:rgba(255,255,255,0.18);
+          transform:translateX(6px);
         }
         .btn-dpd{
-          background:transparent;border:1px solid #00ff4133;color:#3a6a3a;
-          cursor:pointer;font-family:'Share Tech Mono',monospace;font-size:12px;
-          transition:all 0.15s;padding:6px 14px;border-radius:2px;
+          background:rgba(255,255,255,0.05);
+          border:1px solid rgba(255,255,255,0.1);
+          border-radius:10px;padding:9px 18px;
+          font-size:15px;font-weight:700;color:#cbd5e1;
+          cursor:pointer;transition:all 0.15s;
+          font-family:'Plus Jakarta Sans',sans-serif;
         }
-        .btn-dpd:hover{background:#00ff410a;border-color:${NEON};color:${NEON};box-shadow:0 0 8px ${NEON}44;}
-        .btn-exec{
-          background:linear-gradient(135deg,#003300,#001a00);
-          border:1px solid ${NEON};color:${NEON};
-          cursor:pointer;font-family:'Share Tech Mono',monospace;
-          transition:all 0.15s;
-          animation:neonPulse 2s infinite;
+        .btn-dpd:hover{
+          background:rgba(255,255,255,0.12);
+          color:#fff;border-color:rgba(255,255,255,0.25);
+          transform:translateY(-2px);
         }
-        .btn-exec:hover{background:#003300;box-shadow:0 0 20px ${NEON}66;}
-        .btn-exec:disabled{opacity:0.3;cursor:default;animation:none;border-color:#1a3a1a;}
-        input{
-          background:#000;border:1px solid #00ff4133;color:${NEON};
-          font-family:'Share Tech Mono',monospace;outline:none;
-          transition:all 0.2s;
+        input[type=number]{
+          background:rgba(255,255,255,0.06);
+          border:1px solid rgba(255,255,255,0.12);
+          border-radius:12px;padding:13px 18px;
+          font-size:16px;color:#f1f5f9;outline:none;
+          width:100%;transition:all 0.2s;
+          font-family:'Plus Jakarta Sans',sans-serif;
+          font-weight:600;
         }
-        input:focus{border-color:${NEON};box-shadow:0 0 8px ${NEON}44;}
-        input::placeholder{color:#1a4a1a;}
+        input[type=number]:focus{
+          border-color:rgba(255,255,255,0.35);
+          background:rgba(255,255,255,0.09);
+          box-shadow:0 0 0 3px rgba(255,255,255,0.05);
+        }
+        input::placeholder{color:rgba(255,255,255,0.25);font-weight:400}
+        ::-webkit-scrollbar{width:5px}
+        ::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.15);border-radius:10px}
       `}</style>
 
-      <Scanlines />
-      <MatrixBg />
+      {/* BG blobs */}
+      <div style={{position:"fixed",inset:0,overflow:"hidden",zIndex:0,pointerEvents:"none"}}>
+        <div style={{position:"absolute",top:"-20%",left:"-10%",width:600,height:600,borderRadius:"50%",background:"radial-gradient(circle,rgba(99,102,241,0.18) 0%,transparent 70%)"}}/>
+        <div style={{position:"absolute",bottom:"-15%",right:"-10%",width:500,height:500,borderRadius:"50%",background:"radial-gradient(circle,rgba(139,92,246,0.15) 0%,transparent 70%)"}}/>
+        <div style={{position:"absolute",top:"40%",right:"20%",width:300,height:300,borderRadius:"50%",background:"radial-gradient(circle,rgba(6,182,212,0.1) 0%,transparent 70%)"}}/>
+      </div>
 
-      <div style={{ minHeight: "100vh", padding: "20px 16px 60px", position: "relative", zIndex: 1 }}>
-        <div style={{ maxWidth: 620, margin: "0 auto" }}>
+      <div style={{minHeight:"100vh",padding:"28px 16px 80px",position:"relative",zIndex:1}}>
+        <div style={{maxWidth:580,margin:"0 auto"}}>
 
-          {/* ── HEADER ── */}
-          <div style={{ marginBottom: 28, borderBottom: `1px solid ${BORDER}`, paddingBottom: 20 }}>
-            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
-              <div>
-                <div style={{ fontSize: 10, color: "#3a6a3a", letterSpacing: 3, marginBottom: 6 }}>
-                  OLLA_BOT // WAIVE_MATRIX_ENGINE v2.0
-                </div>
-                <GlitchText text="WAIVE.EXE" size={28} color={NEON} />
-                <div style={{ fontSize: 10, color: "#3a6a3a", marginTop: 6, letterSpacing: 1 }}>
-                  &gt; Decision tree initialized · {Object.keys(WAIVE_DATA).length} fee types loaded
-                </div>
+          {/* Header */}
+          <div style={{marginBottom:32,display:"flex",alignItems:"flex-start",justifyContent:"space-between"}}>
+            <div>
+              <div style={{
+                display:"inline-flex",alignItems:"center",gap:8,
+                background:"rgba(99,102,241,0.15)",border:"1px solid rgba(99,102,241,0.3)",
+                borderRadius:100,padding:"4px 14px",marginBottom:12,
+              }}>
+                <span style={{fontSize:10,fontWeight:700,color:"#a5b4fc",letterSpacing:2,textTransform:"uppercase"}}>Olla Bot</span>
               </div>
-              <div style={{ textAlign: "right", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
-                <div style={{
-                  fontSize: 9, color: NEON, letterSpacing: 2, border: `1px solid ${BORDER}`,
-                  padding: "3px 8px", display: "inline-block",
-                }}>STEP {stepIdx + 1}/4</div>
-                <div style={{ fontSize: 9, color: "#3a6a3a", letterSpacing: 1 }}>
-                  {["SELECT_TYPE", "INPUT_DPD", "SELECT_REASON", "OUTPUT_RESULT"][stepIdx]}
-                </div>
-                <button
-                  onClick={() => setLang(l => l === "EN" ? "ID" : "EN")}
-                  style={{
-                    background: "transparent", border: `1px solid ${NEON}55`,
-                    color: NEON, cursor: "pointer", padding: "3px 10px",
-                    fontSize: 10, fontFamily: "monospace", letterSpacing: 2,
-                    transition: "all 0.15s", borderRadius: 2,
-                    boxShadow: lang === "ID" ? `0 0 8px ${NEON}55` : "none",
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = NEON; e.currentTarget.style.boxShadow = `0 0 8px ${NEON}55`; }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = `${NEON}55`; e.currentTarget.style.boxShadow = lang === "ID" ? `0 0 8px ${NEON}55` : "none"; }}
-                >
-                  [{lang === "EN" ? "EN→ID" : "ID→EN"}]
-                </button>
-              </div>
+              <h1 style={{
+                fontSize:30,fontWeight:800,letterSpacing:-0.5,
+                background:"linear-gradient(135deg,#e0e7ff,#c7d2fe,#a5b4fc)",
+                WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",
+              }}>Waive Matrix 🎯</h1>
+              <p style={{fontSize:14,color:"rgba(255,255,255,0.45)",marginTop:6,fontWeight:500}}>
+                {T("Determine waive eligibility step by step","Tentukan eligibilitas waive langkah demi langkah")}
+              </p>
             </div>
 
-            {/* Progress */}
-            <div style={{ marginTop: 16 }}>
-              <ProgressBar current={stepIdx + 1} total={4} />
-              <div style={{ display: "flex", gap: 4 }}>
-                {["TYPE", "DPD", "REASON", "RESULT"].map((s, i) => (
-                  <div key={s} style={{
-                    flex: 1, height: 2,
-                    background: i <= stepIdx ? NEON : "#0a1a0a",
-                    boxShadow: i <= stepIdx ? `0 0 6px ${NEON}` : "none",
-                    transition: "all 0.4s",
-                  }} />
-                ))}
-              </div>
-              <div style={{ display: "flex", gap: 4, marginTop: 4 }}>
-                {["TYPE", "DPD", "REASON", "RESULT"].map((s, i) => (
-                  <div key={s} style={{
-                    flex: 1, fontSize: 8, color: i === stepIdx ? NEON : "#1a3a1a",
-                    letterSpacing: 1, fontFamily: "monospace",
-                  }}>{s}</div>
-                ))}
-              </div>
+            {/* Lang + Reset */}
+            <div style={{display:"flex",flexDirection:"column",gap:8,alignItems:"flex-end"}}>
+              <button onClick={() => setLang(l => l==="ID"?"EN":"ID")} style={{
+                background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.12)",
+                borderRadius:10,padding:"7px 14px",fontSize:13,fontWeight:700,color:"#e2e8f0",
+                cursor:"pointer",transition:"all 0.15s",fontFamily:"inherit",
+              }}
+                onMouseEnter={e=>{e.currentTarget.style.background="rgba(255,255,255,0.12)"}}
+                onMouseLeave={e=>{e.currentTarget.style.background="rgba(255,255,255,0.07)"}}
+              >
+                {lang==="ID"?"🇮🇩 ID":"🇬🇧 EN"}
+              </button>
+              {step > 0 && (
+                <button onClick={reset} style={{
+                  background:"transparent",border:"none",
+                  fontSize:12,fontWeight:600,color:"rgba(255,255,255,0.3)",
+                  cursor:"pointer",fontFamily:"inherit",
+                }}
+                  onMouseEnter={e=>{e.currentTarget.style.color="rgba(255,255,255,0.6)"}}
+                  onMouseLeave={e=>{e.currentTarget.style.color="rgba(255,255,255,0.3)"}}
+                >↺ Reset</button>
+              )}
             </div>
           </div>
 
-          {/* ── MAIN CARD ── */}
-          <div key={animKey} className="card" style={{
-            background: PANEL,
-            border: `1px solid ${BORDER}`,
-            padding: "22px 20px",
-            position: "relative",
-            overflow: "hidden",
-          }}>
-            {/* Corner decorations */}
-            {[{t:0,l:0},{t:0,r:0},{b:0,l:0},{b:0,r:0}].map((pos,i) => (
-              <div key={i} style={{
-                position:"absolute",width:10,height:10,
-                borderTop: (pos.t===0) ? `2px solid ${NEON}` : "none",
-                borderBottom: (pos.b===0) ? `2px solid ${NEON}` : "none",
-                borderLeft: (pos.l===0) ? `2px solid ${NEON}` : "none",
-                borderRight: (pos.r===0) ? `2px solid ${NEON}` : "none",
-                top: pos.t===0 ? 6 : "auto", bottom: pos.b===0 ? 6 : "auto",
-                left: pos.l===0 ? 6 : "auto", right: pos.r===0 ? 6 : "auto",
-              }}/>
+          {/* Step bar */}
+          <div style={{display:"flex",gap:0,marginBottom:28,background:"rgba(255,255,255,0.04)",borderRadius:14,padding:6}}>
+            {STEP_LABELS.map((s,i) => (
+              <div key={s} style={{
+                flex:1,textAlign:"center",padding:"8px 4px",borderRadius:10,
+                background: i===step ? "rgba(255,255,255,0.1)" : "transparent",
+                transition:"all 0.3s",
+              }}>
+                <div style={{
+                  fontSize:11,fontWeight:700,letterSpacing:0.5,
+                  color: i<step ? "#10b981" : i===step ? STEP_COLORS[i] : "rgba(255,255,255,0.25)",
+                }}>
+                  {i<step ? "✓ " : (i+1)+". "}{s}
+                </div>
+              </div>
             ))}
+          </div>
 
-            {/* Scan line sweep */}
+          {/* Main card */}
+          <div key={animKey} className="fade-up" style={{
+            background:"rgba(255,255,255,0.05)",
+            border:"1px solid rgba(255,255,255,0.1)",
+            borderRadius:20,padding:"28px 24px",
+            backdropFilter:"blur(20px)",
+            boxShadow:"0 20px 60px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1)",
+          }}>
+
+            {/* Top accent line */}
             <div style={{
-              position:"absolute",left:0,right:0,height:2,
-              background:`linear-gradient(90deg,transparent,${NEON}33,transparent)`,
-              animation:"scanLine 3s linear infinite",pointerEvents:"none",
+              height:3,borderRadius:100,
+              background: data?.gradient || `linear-gradient(90deg,${accentColor},${accentColor}88)`,
+              marginBottom:22,
+              boxShadow: "0 0 12px " + accentColor + "66",
             }}/>
 
-            {/* ── STEP 1: TYPE SELECT ── */}
-            {step === "waive_type" && (
+            {/* STEP 0 */}
+            {step===0 && (
               <div>
-                <TermLine prefix="$" text="SELECT_FEE_TYPE --interactive" />
-                <TermLine prefix=">" text="Choose waive category to evaluate:" color="#3a6a3a" />
-                <div style={{ height: 1, background: BORDER, margin: "14px 0" }} />
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                  {Object.entries(WAIVE_DATA).map(([type, d], i) => (
-                    <button key={type}
-                      className={`btn-waive ${d.canWaive ? "active" : "inactive"} fade-item`}
-                      onClick={() => selectWaiveType(type)}
-                      style={{
-                        padding: "12px 14px", borderRadius: 2,
-                        animationDelay: `${i * 0.07}s`,
-                        borderColor: d.canWaive ? BORDER : `${RED}22`,
-                      }}
+                <h2 style={{fontSize:20,fontWeight:800,marginBottom:4,color:"#f1f5f9"}}>
+                  {T("Select Fee Type","Pilih Tipe Fee")} 🗂️
+                </h2>
+                <p style={{fontSize:14,color:"rgba(255,255,255,0.45)",marginBottom:22,fontWeight:500}}>
+                  {T("Which fee type is being evaluated?","Tipe fee apa yang sedang dievaluasi?")}
+                </p>
+                <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                  {Object.entries(WAIVE_DATA).map(([type,d],i)=>(
+                    <button key={type} className="btn-type slide-in"
+                      onClick={()=>selectType(type)}
+                      style={{animationDelay:i*0.06+"s"}}
                     >
-                      <div style={{ fontSize: 9, color: d.canWaive ? "#3a6a3a" : "#4a1a1a", marginBottom: 4, letterSpacing: 2 }}>
-                        [{d.tag}]
-                      </div>
-                      <div style={{ fontSize: 13, color: d.canWaive ? "#5a9a5a" : "#4a2a2a", fontWeight: "bold", marginBottom: 3 }}>
-                        {d.icon} {type}
-                      </div>
-                      <div style={{ fontSize: 9, letterSpacing: 1, color: d.canWaive ? "#00ff4166" : "#ff2d5555" }}>
-                        {d.canWaive ? "STATUS: WAIVABLE" : "STATUS: NOT_ELIGIBLE"}
+                      <div style={{display:"flex",alignItems:"center",gap:14}}>
+                        <div style={{
+                          width:44,height:44,borderRadius:12,flexShrink:0,
+                          background:d.gradient||"rgba(255,255,255,0.1)",
+                          display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,
+                        }}>{d.icon}</div>
+                        <div style={{flex:1}}>
+                          <div style={{fontSize:15,fontWeight:700,color:"#f1f5f9",marginBottom:3}}>{type}</div>
+                          <div style={{fontSize:12,fontWeight:600,color: d.canWaive?"#34d399":"#f87171"}}>
+                            {d.canWaive ? T("✓ Eligible for waive","✓ Dapat di-waive") : T("✕ Cannot be waived","✕ Tidak dapat di-waive")}
+                          </div>
+                        </div>
+                        <span style={{color:"rgba(255,255,255,0.2)",fontSize:20}}>›</span>
                       </div>
                     </button>
                   ))}
@@ -534,239 +325,231 @@ export default function App() {
               </div>
             )}
 
-            {/* ── STEP 2: DPD INPUT ── */}
-            {step === "dpd" && (
+            {/* STEP 1 */}
+            {step===1 && (
               <div>
-                <TermLine prefix="$" text={`fee_type="${waiveType}" dpd=?`} />
-                <TermLine prefix=">" text="Input Days Past Due (integer):" color="#3a6a3a" />
-                <div style={{ height: 1, background: BORDER, margin: "14px 0" }} />
-
-                <div style={{ marginBottom: 14 }}>
-                  <div style={{ fontSize: 9, color: "#3a6a3a", letterSpacing: 2, marginBottom: 8 }}>// QUICK SELECT</div>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                    {[1, 2, 3, 5, 7, 14, 30, 60].map((p, i) => (
-                      <button key={p} className="btn-dpd fade-item"
-                        onClick={() => selectDpd(p)}
-                        style={{ animationDelay: `${i * 0.05}s` }}
-                      >
-                        DPD_{p}
-                      </button>
-                    ))}
-                  </div>
+                <h2 style={{fontSize:20,fontWeight:800,marginBottom:4,color:"#f1f5f9"}}>
+                  {T("Days Past Due","Berapa Hari DPD?")} 📅
+                </h2>
+                <p style={{fontSize:14,color:"rgba(255,255,255,0.45)",marginBottom:22,fontWeight:500}}>
+                  {waiveType} · {T("Enter days overdue","Masukkan jumlah hari keterlambatan")}
+                </p>
+                <div style={{display:"flex",flexWrap:"wrap",gap:8,marginBottom:20}}>
+                  {[1,2,3,5,7,14,30,60].map((p,i)=>(
+                    <button key={p} className="btn-dpd slide-in"
+                      onClick={()=>selectDpd(p)}
+                      style={{animationDelay:i*0.05+"s"}}
+                    >{p} {T("days","hari")}</button>
+                  ))}
                 </div>
-
-                <div style={{ height: 1, background: BORDER, margin: "14px 0" }} />
-                <div style={{ fontSize: 9, color: "#3a6a3a", letterSpacing: 2, marginBottom: 8 }}>// MANUAL INPUT</div>
-                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                  <span style={{ color: NEON, fontSize: 14 }}>›</span>
-                  <input
-                    type="number" min={1} max={999}
-                    placeholder="dpd_value..."
+                <div style={{display:"flex",gap:10}}>
+                  <input type="number" min={1} max={999}
+                    placeholder={T("Or type DPD number...","Atau ketik angka DPD...")}
                     value={dpdInput}
-                    onChange={e => setDpdInput(e.target.value)}
-                    onKeyDown={e => e.key === "Enter" && dpdInput && selectDpd(parseInt(dpdInput))}
-                    style={{ flex: 1, padding: "10px 12px", fontSize: 14, borderRadius: 2 }}
+                    onChange={e=>setDpdInput(e.target.value)}
+                    onKeyDown={e=>e.key==="Enter"&&dpdInput&&selectDpd(parseInt(dpdInput))}
                   />
-                  <button className="btn-exec"
-                    onClick={() => dpdInput && selectDpd(parseInt(dpdInput))}
+                  <button onClick={()=>dpdInput&&selectDpd(parseInt(dpdInput))}
                     disabled={!dpdInput}
-                    style={{ padding: "10px 18px", fontSize: 13, borderRadius: 2 }}
-                  >EXEC →</button>
+                    style={{
+                      padding:"13px 22px",borderRadius:12,border:"none",
+                      background:dpdInput?"linear-gradient(135deg,#06b6d4,#3b82f6)":"rgba(255,255,255,0.08)",
+                      color:dpdInput?"#fff":"rgba(255,255,255,0.3)",
+                      fontSize:15,fontWeight:700,cursor:dpdInput?"pointer":"default",
+                      fontFamily:"inherit",transition:"all 0.2s",flexShrink:0,
+                      boxShadow:dpdInput?"0 4px 16px rgba(6,182,212,0.4)":"none",
+                    }}
+                  >{T("Next","Lanjut")} →</button>
                 </div>
               </div>
             )}
 
-            {/* ── STEP 3: REASON ── */}
-            {step === "reason" && (
+            {/* STEP 2 */}
+            {step===2 && (
               <div>
-                <TermLine prefix="$" text={`evaluate --type="${waiveType}" --dpd=${dpd}`} />
-                <TermLine prefix=">" text={`DPD=${dpd} · Matching eligible tiers...`} color="#3a6a3a" />
-                <div style={{ height: 1, background: BORDER, margin: "14px 0" }} />
-
+                <h2 style={{fontSize:20,fontWeight:800,marginBottom:4,color:"#f1f5f9"}}>
+                  {T("Customer's Reason","Alasan Customer")} 💬
+                </h2>
+                <p style={{fontSize:14,color:"rgba(255,255,255,0.45)",marginBottom:22,fontWeight:500}}>
+                  {waiveType} · DPD <span style={{color:"#06b6d4",fontWeight:700}}>{dpd}</span> {T("days","hari")}
+                </p>
                 {!filteredTiers?.length ? (
-                  <NotEligible reason={`DPD=${dpd} tidak memenuhi threshold minimum untuk tier manapun.`} onReset={reset} />
-                ) : (
-                  filteredTiers.map((tier, tIdx) => {
-                    const actualIdx = data.tiers.indexOf(tier);
-                    return (
-                      <div key={tIdx} style={{ marginBottom: 20 }}>
-                        <div style={{
-                          display: "flex", alignItems: "center", gap: 8, marginBottom: 10,
-                        }}>
-                          <div style={{ height: 1, flex: 1, background: `${tier.badgeColor}33` }} />
-                          <span style={{
-                            fontSize: 9, color: tier.badgeColor, letterSpacing: 2,
-                            border: `1px solid ${tier.badgeColor}55`, padding: "2px 8px",
-                            fontFamily: "monospace",
-                          }}>{tier.tag} · {tier.dpdLabel}</span>
-                          <div style={{ height: 1, flex: 1, background: `${tier.badgeColor}33` }} />
-                        </div>
-                        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                          {tier.reasons.map((r, ri) => (
-                            <button key={r.id} className="btn-reason fade-item"
-                              onClick={() => selectReason(actualIdx, r.id)}
-                              style={{
-                                padding: "10px 12px", borderRadius: 2,
-                                animationDelay: `${ri * 0.06}s`,
-                              }}
-                            >
-                              <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
-                                <span style={{
-                                  minWidth: 22, color: NEON, fontSize: 12,
-                                  fontFamily: "monospace", opacity: 0.5, marginTop: 1,
-                                }}>[{r.id.toString().padStart(2, "0")}]</span>
-                                <div>
-                                  <div style={{ fontSize: 12, color: "#5a9a5a", marginBottom: 2 }}>
-                                    {r.icon} {lang === "ID" ? r.id_text : r.text}
-                                  </div>
-                                  <div style={{ fontSize: 10, color: "#2a5a2a", letterSpacing: 0.5 }}>
-                                    // {lang === "ID" ? r.text : r.id_text}
-                                  </div>
-                                </div>
-                                <span style={{ marginLeft: "auto", color: "#1a4a1a", fontSize: 14 }}>›</span>
-                              </div>
-                            </button>
-                          ))}
-                        </div>
+                  <NotEligible reason={T("DPD does not meet minimum threshold.","DPD tidak memenuhi syarat minimum untuk tier manapun.")} onReset={reset} T={T}/>
+                ) : filteredTiers.map((tier,tIdx)=>{
+                  const actualIdx = data.tiers.indexOf(tier);
+                  return (
+                    <div key={tIdx} style={{marginBottom:20}}>
+                      <div style={{
+                        display:"inline-flex",alignItems:"center",gap:8,
+                        background:tier.accentLight,border:"1px solid "+tier.accent+"44",
+                        borderRadius:100,padding:"5px 14px",marginBottom:12,
+                      }}>
+                        <span style={{fontSize:12,fontWeight:700,color:tier.accent}}>
+                          {lang==="ID"?tier.labelId:tier.label}
+                        </span>
+                        <span style={{fontSize:11,color:tier.accent+"99",fontWeight:500}}>· {tier.dpdLabel}</span>
                       </div>
-                    );
-                  })
-                )}
+                      <div style={{display:"flex",flexDirection:"column",gap:7}}>
+                        {tier.reasons.map((r,ri)=>(
+                          <button key={r.id} className="btn-reason slide-in"
+                            onClick={()=>selectReason(actualIdx,r.id)}
+                            style={{animationDelay:ri*0.06+"s"}}
+                          >
+                            <div style={{display:"flex",alignItems:"flex-start",gap:12}}>
+                              <div style={{
+                                width:36,height:36,borderRadius:10,flexShrink:0,
+                                background:tier.accentLight,display:"flex",
+                                alignItems:"center",justifyContent:"center",fontSize:18,
+                              }}>{r.icon}</div>
+                              <div style={{flex:1}}>
+                                <div style={{fontSize:14,fontWeight:700,color:"#f1f5f9",marginBottom:2,lineHeight:1.4}}>
+                                  {lang==="ID"?r.id_text:r.text}
+                                </div>
+                                <div style={{fontSize:12,color:"rgba(255,255,255,0.35)",lineHeight:1.4}}>
+                                  {lang==="ID"?r.text:r.id_text}
+                                </div>
+                              </div>
+                              <span style={{color:"rgba(255,255,255,0.2)",fontSize:18,flexShrink:0}}>›</span>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
 
-            {/* ── STEP 4: RESULT ── */}
-            {step === "result" && (
+            {/* STEP 3 */}
+            {step===3 && (
               <div>
                 {!data?.canWaive ? (
                   <NotEligible
-                    reason={`${waiveType} → canWaive: false. Tipe ini tidak dapat di-waive sesuai kebijakan.`}
-                    onReset={reset}
+                    reason={T(waiveType+" cannot be waived per policy.",waiveType+" tidak dapat di-waive sesuai kebijakan.")}
+                    onReset={reset} T={T}
                   />
                 ) : (
                   <>
-                    {/* Eligible header */}
+                    {/* Eligible banner */}
                     <div style={{
-                      border: `1px solid ${NEON}`,
-                      background: "#001a00",
-                      padding: "14px 16px", marginBottom: 18,
-                      boxShadow: `0 0 20px ${NEON}22, inset 0 0 20px ${NEON}08`,
-                      position: "relative", overflow: "hidden",
+                      background:"linear-gradient(135deg,rgba(16,185,129,0.15),rgba(5,150,105,0.1))",
+                      border:"1px solid rgba(16,185,129,0.3)",
+                      borderRadius:14,padding:"16px 18px",marginBottom:20,
+                      display:"flex",alignItems:"center",gap:14,
                     }}>
                       <div style={{
-                        position: "absolute", top: 0, left: 0, right: 0, height: 1,
-                        background: `linear-gradient(90deg,transparent,${NEON},transparent)`,
-                      }} />
-                      <div style={{ fontSize: 9, color: "#3a6a3a", letterSpacing: 3, marginBottom: 6 }}>
-                        OUTPUT · WAIVE_ENGINE
-                      </div>
-                      <div style={{
-                        fontFamily: "'Orbitron', monospace", fontSize: 20,
-                        color: NEON, letterSpacing: 2,
-                        textShadow: `0 0 10px ${NEON}, 0 0 30px ${NEON}55`,
-                      }}>
-                        ✓ ELIGIBLE · APPROVED
-                      </div>
-                      <div style={{ fontSize: 10, color: "#3a8a3a", marginTop: 4, letterSpacing: 1 }}>
-                        &gt; {t("Customer qualifies for waive approval", "Customer memenuhi syarat untuk mendapatkan waive")}
+                        width:52,height:52,borderRadius:"50%",flexShrink:0,
+                        background:"linear-gradient(135deg,#10b981,#059669)",
+                        display:"flex",alignItems:"center",justifyContent:"center",
+                        fontSize:24,boxShadow:"0 4px 16px rgba(16,185,129,0.4)",
+                      }}>✓</div>
+                      <div>
+                        <div style={{fontSize:18,fontWeight:800,color:"#34d399",letterSpacing:-0.3}}>
+                          {T("Eligible for Waive! 🎉","Eligible untuk Waive! 🎉")}
+                        </div>
+                        <div style={{fontSize:13,color:"rgba(52,211,153,0.7)",marginTop:3,fontWeight:500}}>
+                          {T("Customer qualifies for waive approval","Customer memenuhi syarat untuk mendapatkan waive")}
+                        </div>
                       </div>
                     </div>
 
-                    {/* Stats grid */}
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 16 }}>
+                    {/* Stats */}
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
                       {[
-                        { key: "FEE_TYPE",  val: waiveType,    c: CYAN },
-                        { key: "DPD_VALUE", val: `${dpd} hari (${resultTier?.dpdLabel})`, c: GOLD },
-                        { key: "WAIVE_PCT", val: (resultTier?.waivePctPerReason && resultReason)
-                            ? (resultTier.waivePctPerReason[resultReason.id] || resultTier.waivePct)
-                            : (resultTier?.waivePct || "–"), c: NEON },
-                        { key: "MAX_AMNT",  val: resultTier?.waiveAmt || "–", c: "#aa88ff" },
-                      ].map((item, i) => (
-                        <div key={i} className="fade-item" style={{
-                          background: "#000", border: `1px solid ${item.c}33`,
-                          padding: "10px 12px", borderRadius: 2,
-                          animationDelay: `${i * 0.08}s`,
+                        {label:T("Fee Type","Tipe Fee"), val:waiveType, grad:"linear-gradient(135deg,#6366f1,#8b5cf6)"},
+                        {label:T("DPD","DPD"), val:dpd+" "+T("days","hari")+" ("+resultTier?.dpdLabel+")", grad:"linear-gradient(135deg,#06b6d4,#3b82f6)"},
+                        {label:T("Waive %","% Waive"), val:waivePct, grad:"linear-gradient(135deg,#10b981,#059669)"},
+                        {label:T("Max Amount","Nominal Max"), val:resultTier?.waiveAmt||"—", grad:"linear-gradient(135deg,#f59e0b,#ef4444)"},
+                      ].map((item,i)=>(
+                        <div key={i} style={{
+                          background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.08)",
+                          borderRadius:12,padding:"13px 14px",overflow:"hidden",position:"relative",
                         }}>
-                          <div style={{ fontSize: 9, color: `${item.c}77`, letterSpacing: 2, marginBottom: 4 }}>
-                            {item.key}
-                          </div>
                           <div style={{
-                            fontSize: 13, color: item.c, fontFamily: "monospace",
-                            textShadow: `0 0 8px ${item.c}55`,
-                          }}>{item.val}</div>
+                            position:"absolute",top:0,left:0,right:0,height:2,
+                            background:item.grad,
+                          }}/>
+                          <div style={{fontSize:11,color:"rgba(255,255,255,0.4)",fontWeight:600,marginBottom:5,textTransform:"uppercase",letterSpacing:0.8}}>{item.label}</div>
+                          <div style={{fontSize:15,fontWeight:800,color:"#f1f5f9",lineHeight:1.3}}>{item.val}</div>
                         </div>
                       ))}
                     </div>
 
-                    {/* Selected reason */}
+                    {/* Reason */}
                     {resultReason && (
-                      <div className="fade-item" style={{
-                        background: "#000", border: `1px solid ${BORDER}`,
-                        padding: "12px 14px", marginBottom: 14,
-                        animationDelay: "0.32s",
+                      <div style={{
+                        background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.08)",
+                        borderRadius:12,padding:"13px 14px",marginBottom:12,
                       }}>
-                        <div style={{ fontSize: 9, color: "#3a6a3a", letterSpacing: 2, marginBottom: 8 }}>
-                          MATCHED_REASON
+                        <div style={{fontSize:11,color:"rgba(255,255,255,0.35)",fontWeight:600,textTransform:"uppercase",letterSpacing:0.8,marginBottom:8}}>
+                          {T("Matched Reason","Alasan Terpilih")}
                         </div>
-                        <div style={{ fontSize: 12, color: "#5a9a5a", marginBottom: 4 }}>
-                          [{resultReason.id.toString().padStart(2,"0")}] {resultReason.icon} {resultReason.text}
-                        </div>
-                        <div style={{ fontSize: 10, color: "#2a5a2a" }}>// {resultReason.id_text}</div>
-                      </div>
-                    )}
-
-                    {/* Warning note */}
-                    {resultTier?.notes && (
-                      <div className="fade-item" style={{
-                        background: "#1a0800", border: `1px solid ${GOLD}44`,
-                        padding: "10px 14px", marginBottom: 14, fontSize: 11,
-                        color: GOLD, animationDelay: "0.38s",
-                        boxShadow: `0 0 8px ${GOLD}22`,
-                      }}>
-                        ⚠ NOTICE: {resultTier.notes}
-                      </div>
-                    )}
-
-                    {/* Documents */}
-                    {resultTier?.docs && (
-                      <div className="fade-item" style={{ animationDelay: "0.44s" }}>
-                        <div style={{ fontSize: 9, color: "#3a6a3a", letterSpacing: 2, marginBottom: 10 }}>
-                          REQUIRED_DOCS[] = [
-                        </div>
-                        {resultTier.docs.map((doc, i) => (
-                          <div key={i} style={{
-                            display: "flex", gap: 10, marginBottom: 6, paddingLeft: 12,
-                          }}>
-                            <span style={{ color: "#1a5a1a", fontSize: 11, minWidth: 22, fontFamily: "monospace" }}>
-                              {i},
-                            </span>
-                            <span style={{ fontSize: 11, color: "#3a7a3a", letterSpacing: 0.3 }}>{doc}</span>
+                        <div style={{display:"flex",gap:10,alignItems:"flex-start"}}>
+                          <span style={{fontSize:20}}>{resultReason.icon}</span>
+                          <div>
+                            <div style={{fontSize:14,fontWeight:700,color:"#f1f5f9",lineHeight:1.4}}>
+                              {lang==="ID"?resultReason.id_text:resultReason.text}
+                            </div>
+                            <div style={{fontSize:12,color:"rgba(255,255,255,0.3)",marginTop:2,lineHeight:1.4}}>
+                              {lang==="ID"?resultReason.text:resultReason.id_text}
+                            </div>
                           </div>
-                        ))}
-                        <div style={{ fontSize: 9, color: "#3a6a3a", letterSpacing: 2, marginTop: 4 }}>]</div>
+                        </div>
                       </div>
                     )}
 
-                    {/* Copy + Reset */}
-                    <div style={{ display: "flex", gap: 8, marginTop: 20 }} className="fade-item">
+                    {/* Notes */}
+                    {resultTier?.notes && (
+                      <div style={{
+                        background:"rgba(245,158,11,0.1)",border:"1px solid rgba(245,158,11,0.25)",
+                        borderRadius:12,padding:"11px 14px",marginBottom:12,
+                        fontSize:13,color:"#fcd34d",lineHeight:1.6,fontWeight:500,
+                      }}>⚠️ {resultTier.notes}</div>
+                    )}
+
+                    {/* Docs */}
+                    {resultTier?.docs && (
+                      <div style={{marginBottom:20}}>
+                        <div style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.35)",textTransform:"uppercase",letterSpacing:0.8,marginBottom:12}}>
+                          📎 {T("Required Documents","Dokumen yang Diperlukan")}
+                        </div>
+                        <div style={{display:"flex",flexDirection:"column",gap:7}}>
+                          {resultTier.docs.map((doc,i)=>(
+                            <div key={i} style={{display:"flex",gap:10,alignItems:"flex-start"}}>
+                              <span style={{
+                                minWidth:24,height:24,borderRadius:7,flexShrink:0,
+                                background:"rgba(99,102,241,0.2)",border:"1px solid rgba(99,102,241,0.3)",
+                                display:"flex",alignItems:"center",justifyContent:"center",
+                                fontSize:11,fontWeight:800,color:"#a5b4fc",marginTop:1,
+                              }}>{i+1}</span>
+                              <span style={{fontSize:14,color:"rgba(255,255,255,0.7)",lineHeight:1.5,fontWeight:500}}>{doc}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Actions */}
+                    <div style={{display:"flex",gap:10}}>
                       <button onClick={handleCopy} style={{
-                        flex: 1, padding: "13px", fontSize: 12, borderRadius: 2,
-                        letterSpacing: 2, fontFamily: "monospace", cursor: "pointer",
-                        background: copied ? "#003300" : "transparent",
-                        border: `1px solid ${copied ? NEON : NEON + "55"}`,
-                        color: copied ? NEON : NEON + "99",
-                        transition: "all 0.2s",
-                        boxShadow: copied ? `0 0 12px ${NEON}55` : "none",
-                        animationDelay: "0.52s",
+                        flex:1,padding:"13px",borderRadius:12,
+                        border:"1px solid "+(copied?"rgba(16,185,129,0.4)":"rgba(255,255,255,0.12)"),
+                        background:copied?"rgba(16,185,129,0.15)":"rgba(255,255,255,0.06)",
+                        color:copied?"#34d399":"rgba(255,255,255,0.7)",
+                        fontSize:14,fontWeight:700,cursor:"pointer",
+                        transition:"all 0.2s",fontFamily:"inherit",
                       }}>
-                        {copied ? "✓ COPIED!" : "$ ./copy_result.sh"}
+                        {copied ? "✓ "+T("Copied!","Tersalin!") : "📋 "+T("Copy Result","Salin Hasil")}
                       </button>
-                      <button className="btn-exec" onClick={reset} style={{
-                        flex: 1, padding: "13px", fontSize: 12,
-                        borderRadius: 2, letterSpacing: 2,
-                        animationDelay: "0.56s",
+                      <button onClick={reset} style={{
+                        flex:1,padding:"13px",borderRadius:12,border:"none",
+                        background:"linear-gradient(135deg,#6366f1,#8b5cf6)",
+                        color:"#fff",fontSize:14,fontWeight:700,
+                        cursor:"pointer",fontFamily:"inherit",
+                        boxShadow:"0 4px 16px rgba(99,102,241,0.4)",
+                        transition:"all 0.2s",
                       }}>
-                        $ ./reset.sh
+                        🔄 {T("New Check","Cek Baru")}
                       </button>
                     </div>
                   </>
@@ -775,31 +558,24 @@ export default function App() {
             )}
           </div>
 
-          {/* ── NAV ── */}
-          {step !== "waive_type" && step !== "result" && (
-            <div style={{ marginTop: 10 }}>
-              <button onClick={goBack} style={{
-                background: "transparent", border: `1px solid ${BORDER}`,
-                color: "#3a6a3a", cursor: "pointer", padding: "6px 14px",
-                fontSize: 11, fontFamily: "monospace", letterSpacing: 1,
-                transition: "all 0.15s", borderRadius: 2,
+          {/* Back */}
+          {step > 0 && step < 3 && (
+            <div style={{marginTop:14}}>
+              <button onClick={()=>go(step-1)} style={{
+                background:"transparent",border:"1px solid rgba(255,255,255,0.1)",
+                borderRadius:10,padding:"9px 18px",fontSize:14,fontWeight:600,
+                color:"rgba(255,255,255,0.4)",cursor:"pointer",fontFamily:"inherit",
+                transition:"all 0.15s",
               }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = NEON; e.currentTarget.style.color = NEON; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = BORDER; e.currentTarget.style.color = "#3a6a3a"; }}
-              >
-                ← BACK
-              </button>
+                onMouseEnter={e=>{e.currentTarget.style.color="rgba(255,255,255,0.7)";e.currentTarget.style.borderColor="rgba(255,255,255,0.2)"}}
+                onMouseLeave={e=>{e.currentTarget.style.color="rgba(255,255,255,0.4)";e.currentTarget.style.borderColor="rgba(255,255,255,0.1)"}}
+              >← {T("Back","Kembali")}</button>
             </div>
           )}
 
-          {/* ── FOOTER ── */}
-          <div style={{
-            textAlign: "center", marginTop: 28, paddingTop: 14,
-            borderTop: `1px solid ${BORDER}`,
-          }}>
-            <span style={{ fontSize: 9, color: "#1a4a1a", letterSpacing: 3, fontFamily: "monospace" }}>
-              © OLLA_BOT · WAIVE_MATRIX_ENGINE · ALL RIGHTS RESERVED
-            </span>
+          {/* Footer */}
+          <div style={{textAlign:"center",marginTop:32,fontSize:12,color:"rgba(255,255,255,0.2)",fontWeight:500}}>
+            © Olla Bot · Waive Matrix
           </div>
 
         </div>
@@ -808,36 +584,30 @@ export default function App() {
   );
 }
 
-// ─── NOT ELIGIBLE ──
-function NotEligible({ reason, onReset }) {
+function NotEligible({reason,onReset,T}) {
   return (
-    <div style={{ textAlign: "center", padding: "16px 0" }}>
+    <div style={{textAlign:"center",padding:"16px 0"}}>
       <div style={{
-        border: "1px solid #ff2d5544", background: "#0f0000",
-        padding: "16px 20px", marginBottom: 20,
-        boxShadow: "0 0 20px #ff2d5522",
-      }}>
-        <div style={{
-          fontFamily: "'Orbitron',monospace", fontSize: 18,
-          color: "#ff2d55", letterSpacing: 2, marginBottom: 6,
-          textShadow: "0 0 10px #ff2d55",
-        }}>
-          ✕ NOT_ELIGIBLE
-        </div>
-        <div style={{ fontSize: 10, color: "#5a2a2a", letterSpacing: 1, lineHeight: 1.6 }}>
-          ERROR: {reason}
-        </div>
+        width:64,height:64,borderRadius:"50%",margin:"0 auto 16px",
+        background:"rgba(244,63,94,0.15)",border:"1px solid rgba(244,63,94,0.3)",
+        display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,
+      }}>✕</div>
+      <div style={{fontSize:20,fontWeight:800,color:"#f43f5e",marginBottom:8}}>
+        {T("Not Eligible","Tidak Eligible")}
+      </div>
+      <div style={{fontSize:14,color:"rgba(255,255,255,0.4)",marginBottom:24,lineHeight:1.6,fontWeight:500}}>
+        {reason}
       </div>
       <button onClick={onReset} style={{
-        background: "#0f0000", border: "1px solid #ff2d5566",
-        color: "#ff2d55", cursor: "pointer", padding: "10px 24px",
-        fontSize: 12, fontFamily: "monospace", letterSpacing: 2,
-        transition: "all 0.15s", borderRadius: 2,
+        padding:"12px 28px",borderRadius:12,
+        background:"rgba(244,63,94,0.15)",border:"1px solid rgba(244,63,94,0.3)",
+        color:"#f87171",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit",
+        transition:"all 0.15s",
       }}
-        onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 0 12px #ff2d5544"; e.currentTarget.style.background = "#1a0000"; }}
-        onMouseLeave={e => { e.currentTarget.style.boxShadow = "none"; e.currentTarget.style.background = "#0f0000"; }}
+        onMouseEnter={e=>{e.currentTarget.style.background="rgba(244,63,94,0.25)"}}
+        onMouseLeave={e=>{e.currentTarget.style.background="rgba(244,63,94,0.15)"}}
       >
-        $ ./retry.sh
+        🔄 {T("Try Again","Coba Lagi")}
       </button>
     </div>
   );
