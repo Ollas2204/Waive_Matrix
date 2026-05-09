@@ -244,15 +244,15 @@ export default function App() {
       : (resultTier.waivePct || "-");
     const lines = [
       "=== WAIVE DECISION RESULT ===",
-      \`Fee Type   : \${waiveType}\`,
-      \`DPD        : \${dpd} hari (\${resultTier.dpdLabel})\`,
-      \`Waive %    : \${waivePct}\`,
-      \`Max Amount : \${resultTier.waiveAmt || "-"}\`,
-      resultReason ? \`Reason     : [\${resultReason.id}] \${lang === "ID" ? resultReason.id_text : resultReason.text}\` : "",
-      resultTier.notes ? \`NOTICE     : \${resultTier.notes}\` : "",
+      "Fee Type   : " + waiveType,
+      "DPD        : " + dpd + " hari (" + resultTier.dpdLabel + ")",
+      "Waive %    : " + waivePct,
+      "Max Amount : " + (resultTier.waiveAmt || "-"),
+      resultReason ? ("Reason     : [" + resultReason.id + "] " + (lang === "ID" ? resultReason.id_text : resultReason.text)) : "",
+      resultTier.notes ? ("NOTICE     : " + resultTier.notes) : "",
       "",
       "--- Required Documents ---",
-      ...(resultTier.docs || []).map((d, i) => \`\${i + 1}. \${d}\`),
+      ...(resultTier.docs || []).map((d, i) => (i + 1) + ". " + d),
       "",
       "© OLLA_BOT · WAIVE_MATRIX_ENGINE",
     ].filter(l => l !== null);
